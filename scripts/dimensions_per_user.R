@@ -72,6 +72,10 @@ data_no_hot_encode = dimensions_per_user %>%
   
   distinct()
 
+  # keep only data of users that are unique
+data_no_hot_encode %>% 
+  filter(!(user_pseudo_id %in% duplicate_user_pseudo_id))
+  
 # 2.4 one-hot encode page_cat_1
 one_hot_page_cat_1 = one_hot_encode_var(dimensions_per_user, "page_cat_1")
 
@@ -91,6 +95,21 @@ all_data_frames = list(data_no_hot_encode, one_hot_page_cat_1,
 dimensions_per_user = all_data_frames %>% 
   reduce(left_join, by = "user_pseudo_id")
 
+# 2.9 Remove duplicate users
+  # identify user_pseudo_id that are duplicate
+duplicate_user_pseudo_id = data_no_hot_encode %>% 
+  mutate(value = 1) %>% 
+  
+  group_by(user_pseudo_id) %>% 
+  mutate(duplicated = value %>% cumsum()) %>% 
+  ungroup() %>% 
+  
+  filter(duplicated > 1) %>% 
+  pull(user_pseudo_id)
+
+dimensions_per_user = dimensions_per_user %>% 
+  filter(!(user_pseudo_id %in% duplicate_user_pseudo_id))
+
 # 3 Save data dimensions per user -----
-setwd("/Users/arbenkqiku/Desktop/GA4-ML-R-Docker-GCP/scripts/")
+setwd("/Users/arbenkqiku/Desktop/GA4-ML-R-Docker-GCP/data")
 saveRDS(dimensions_per_user, "dimensions_per_user.RDS")
